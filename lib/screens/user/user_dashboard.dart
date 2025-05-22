@@ -10,7 +10,7 @@ class UserDashboard extends StatefulWidget {
 
 class _UserDashboardState extends State<UserDashboard> {
   int _selectedIndex = 0;
-  final Color _primaryColor = const Color.fromARGB(255, 163, 6, 6);
+  final Color _primaryColor = const Color.fromARGB(255, 97, 4, 4);
   final Color _accentColor = const Color(0xFF00BCD4);
 
   @override
@@ -18,7 +18,7 @@ class _UserDashboardState extends State<UserDashboard> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text('Fitness App'),
+        title: const Text('Application Fitness'),
         titleTextStyle: TextStyle(color: Colors.white, fontSize: 20),
         backgroundColor: _primaryColor,
         elevation: 0,
@@ -59,7 +59,7 @@ class _UserDashboardState extends State<UserDashboard> {
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      'John Doe',
+                      'Mouad Talibi',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -68,7 +68,7 @@ class _UserDashboardState extends State<UserDashboard> {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      'Premium Member',
+                      'Membre Premium',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.7),
                         fontSize: 14,
@@ -77,19 +77,18 @@ class _UserDashboardState extends State<UserDashboard> {
                   ],
                 ),
               ),
-              _buildDrawerItem(Icons.dashboard, 'Dashboard', 0),
-              _buildDrawerItem(Icons.calculate, 'Calorie Calculator', 1),
-              _buildDrawerItem(Icons.food_bank, 'Nutrition Database', 2),
-              _buildDrawerItem(Icons.shopping_cart, 'Shop', 3),
-              _buildDrawerItem(Icons.card_membership, 'Subscription', 4),
+              _buildDrawerItem(Icons.dashboard, 'Tableau de bord', 0),
+              _buildDrawerItem(Icons.calculate, 'Calculatrice de calories', 1),
+              _buildDrawerItem(Icons.food_bank, ' Valeur nutritionnelle', 2),
+              _buildDrawerItem(Icons.shopping_cart, 'Boutique', 3),
+              _buildDrawerItem(Icons.card_membership, 'Abonnement', 4),
               const Divider(),
-              _buildDrawerItem(Icons.settings, 'Settings', 5),
               GestureDetector(
                 onTap: () => Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => MyLogin()),
                 ),
-                child: _buildDrawerItem(Icons.logout, 'Logout', 6),
+                child: _buildDrawerItem(Icons.logout, 'Déconnexion', 6),
               ),
             ],
           ),
@@ -154,7 +153,7 @@ class _UserDashboardState extends State<UserDashboard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Your Progress',
+          'Votre progression',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -184,7 +183,7 @@ class _UserDashboardState extends State<UserDashboard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Fitness Goals',
+              'Objectifs',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -199,15 +198,14 @@ class _UserDashboardState extends State<UserDashboard> {
                   children: [
                     Expanded(
                       child: _buildStatItem(
-                          'Current Weight', '75 kg', Icons.monitor_weight),
+                          'Poids actuel', '75 kg', Icons.monitor_weight),
                     ),
                     Expanded(
-                      child:
-                          _buildStatItem('Target Weight', '70 kg', Icons.flag),
+                      child: _buildStatItem('Poids cible', '70 kg', Icons.flag),
                     ),
                     Expanded(
                       child: _buildStatItem(
-                          'Days Active', '45', Icons.calendar_today),
+                          'Jours actifs', '45', Icons.calendar_today),
                     ),
                   ],
                 );
@@ -258,7 +256,7 @@ class _UserDashboardState extends State<UserDashboard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Quick Actions',
+          'Actions rapides',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -276,10 +274,11 @@ class _UserDashboardState extends State<UserDashboard> {
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               children: [
-                _buildActionCard('Calculate Calories', Icons.calculate),
-                _buildActionCard('View Products', Icons.shopping_cart),
-                _buildActionCard('Nutrition Guide', Icons.food_bank),
-                _buildActionCard('Subscription Status', Icons.card_membership),
+                _buildActionCard('Calculer votre calories', Icons.calculate),
+                _buildActionCard('Voir les produits', Icons.shopping_cart),
+                _buildActionCard('Valeur nutritionnel', Icons.food_bank),
+                _buildActionCard(
+                    'Statut de l\'abonnement', Icons.card_membership),
               ],
             );
           },
@@ -339,7 +338,7 @@ class _UserDashboardState extends State<UserDashboard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Subscription Status',
+              'Statut de l\'abonnement',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -357,10 +356,10 @@ class _UserDashboardState extends State<UserDashboard> {
                 ),
                 child: Icon(Icons.calendar_today, color: _primaryColor),
               ),
-              title: const Text('Next Payment Due'),
-              subtitle: const Text('April 23, 2024'),
+              title: const Text('Prochain paiement'),
+              subtitle: const Text('23 avril 2024'),
               trailing: const Text(
-                '\$50',
+                '50 MAD',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -379,13 +378,14 @@ class _UserDashboardState extends State<UserDashboard> {
     final TextEditingController heightController = TextEditingController();
     final TextEditingController weightController = TextEditingController();
     String selectedGoal = 'bulk';
+    int selectedSessions = 3; // Default value for workout sessions
 
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Calorie Calculator',
+            'Calculateur de calories',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -407,7 +407,7 @@ class _UserDashboardState extends State<UserDashboard> {
                     controller: ageController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                      labelText: 'Age',
+                      labelText: 'Âge',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.person),
                       contentPadding:
@@ -420,7 +420,7 @@ class _UserDashboardState extends State<UserDashboard> {
                     controller: heightController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                      labelText: 'Height (cm)',
+                      labelText: 'Taille (cm)',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.height),
                       contentPadding:
@@ -433,7 +433,7 @@ class _UserDashboardState extends State<UserDashboard> {
                     controller: weightController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                      labelText: 'Weight (kg)',
+                      labelText: 'Poids (kg)',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.monitor_weight),
                       contentPadding:
@@ -443,7 +443,35 @@ class _UserDashboardState extends State<UserDashboard> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Goal',
+                    'Nombre de séances par semaine',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  DropdownButtonFormField<int>(
+                    value: selectedSessions,
+                    items: [3, 4, 5, 6]
+                        .map((value) => DropdownMenuItem<int>(
+                              value: value,
+                              child: Text('$value séances'),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedSessions = value!;
+                      });
+                    },
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Objectif',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -456,7 +484,7 @@ class _UserDashboardState extends State<UserDashboard> {
                         children: [
                           Expanded(
                             child: RadioListTile<String>(
-                              title: const Text('Bulk'),
+                              title: const Text('Prise de masse'),
                               value: 'bulk',
                               groupValue: selectedGoal,
                               contentPadding: EdgeInsets.zero,
@@ -470,7 +498,7 @@ class _UserDashboardState extends State<UserDashboard> {
                           ),
                           Expanded(
                             child: RadioListTile<String>(
-                              title: const Text('Cut'),
+                              title: const Text('Perte de poids'),
                               value: 'cut',
                               groupValue: selectedGoal,
                               contentPadding: EdgeInsets.zero,
@@ -497,24 +525,30 @@ class _UserDashboardState extends State<UserDashboard> {
                           double weight = double.parse(weightController.text);
                           double height = double.parse(heightController.text);
                           int age = int.parse(ageController.text);
+
+                          // Adjust BMR based on workout sessions
                           double bmr =
                               (10 * weight) + (6.25 * height) - (5 * age) + 5;
-                          double dailyCalories =
-                              selectedGoal == 'bulk' ? bmr + 500 : bmr - 500;
+                          double activityFactor = 1.2 +
+                              (selectedSessions - 3) *
+                                  0.1; // Increase activity factor based on sessions
+                          double dailyCalories = selectedGoal == 'bulk'
+                              ? bmr * activityFactor + 500
+                              : bmr * activityFactor - 500;
 
                           showDialog(
                             context: context,
                             builder: (context) => AlertDialog(
-                              title: const Text('Your Daily Calories'),
+                              title: const Text('Vos calories quotidiennes'),
                               content: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                      'BMR: ${bmr.toStringAsFixed(0)} calories'),
+                                      'BMR : ${bmr.toStringAsFixed(0)} calories'),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Daily Calories for ${selectedGoal.toUpperCase()}: ${dailyCalories.toStringAsFixed(0)} calories',
+                                    'Calories quotidiennes pour ${selectedGoal == 'bulk' ? 'PRISE DE MASSE' : 'PERTE DE POIDS'} : ${dailyCalories.toStringAsFixed(0)} calories',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 18,
@@ -533,7 +567,7 @@ class _UserDashboardState extends State<UserDashboard> {
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Please fill in all fields'),
+                              content: Text('Veuillez remplir tous les champs'),
                             ),
                           );
                         }
@@ -543,7 +577,7 @@ class _UserDashboardState extends State<UserDashboard> {
                         backgroundColor: const Color(0xFF1A237E),
                       ),
                       child: const Text(
-                        'Calculate Calories',
+                        'Calculer les calories',
                         style: TextStyle(fontSize: 16, color: Colors.white),
                       ),
                     ),
@@ -562,7 +596,7 @@ class _UserDashboardState extends State<UserDashboard> {
     return const Center(
       child: Padding(
         padding: EdgeInsets.all(20.0),
-        child: Text('Nutrition Database Coming Soon'),
+        child: Text('Les Valeurs nutritionnelle bientôt disponible'),
       ),
     );
   }
@@ -571,7 +605,7 @@ class _UserDashboardState extends State<UserDashboard> {
     return const Center(
       child: Padding(
         padding: EdgeInsets.all(20.0),
-        child: Text('Shop Coming Soon'),
+        child: Text('Boutique bientôt disponible'),
       ),
     );
   }
@@ -580,7 +614,7 @@ class _UserDashboardState extends State<UserDashboard> {
     return const Center(
       child: Padding(
         padding: EdgeInsets.all(20.0),
-        child: Text('Subscription Details Coming Soon'),
+        child: Text('Détails de l\'abonnement bientôt disponibles'),
       ),
     );
   }

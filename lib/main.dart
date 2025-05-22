@@ -2,9 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:gym_application/login.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/user/user_dashboard.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'member_list_screen.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    print('Initializing Firebase...');
+    await Firebase.initializeApp();
+    print('Firebase initialized successfully');
+    runApp(const MyApp());
+  } catch (e) {
+    print('Error initializing Firebase: $e');
+    // You might want to show an error screen here
+    runApp(MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Text('Error initializing app: $e'),
+        ),
+      ),
+    ));
+  }
 }
 
 class MyApp extends StatelessWidget {
