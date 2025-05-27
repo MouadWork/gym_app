@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:gym_application/login.dart';
 import 'package:gym_application/db_helper.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({Key? key}) : super(key: key);
@@ -16,6 +18,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   final Color _accentColor = const Color(0xFF00BCD4);
   List<Map<String, dynamic>> _members = [];
   List<Map<String, dynamic>> _products = [];
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
@@ -37,7 +40,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
       _products = data;
     });
   }
-// Liste des produits
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -108,12 +116,23 @@ class _AdminDashboardState extends State<AdminDashboard> {
               _buildDrawerItem(Icons.card_membership, 'Abonnements', 2),
               _buildDrawerItem(Icons.shopping_cart, 'Produits', 3),
               const Divider(),
-              GestureDetector(
-                  onTap: () => Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => MyLogin()),
-                      ),
-                  child: _buildDrawerItem(Icons.logout, 'Déconnexion', 6)),
+              ListTile(
+                leading: Icon(Icons.logout, color: Colors.grey[600]),
+                title: Text(
+                  'Déconnexion',
+                  style: TextStyle(
+                    color: Colors.grey[800],
+                    fontWeight: FontWeight.normal,
+                  ),
+                ),
+                onTap: () async {
+                  await FirebaseAuth.instance.signOut();
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const MyLogin()),
+                  );
+                },
+              ),
             ],
           ),
         ),
@@ -435,6 +454,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final _nomController = TextEditingController();
     final _prenomController = TextEditingController();
     final _numTelephoneController = TextEditingController();
+    final _emailController = TextEditingController();
+    final _passwordController = TextEditingController();
     String? _selectedSexe;
 
     showDialog(
@@ -471,6 +492,24 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 10),
+                TextField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _passwordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Mot de passe temporaire',
+                    border: OutlineInputBorder(),
+                  ),
+                  obscureText: true,
+                ),
+                const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   value: _selectedSexe,
                   items: const [
@@ -498,13 +537,73 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 if (_nomController.text.isNotEmpty &&
                     _prenomController.text.isNotEmpty &&
                     _numTelephoneController.text.isNotEmpty &&
+                    _emailController.text.isNotEmpty &&
+                    _passwordController.text.isNotEmpty &&
                     _selectedSexe != null) {
-                  await DBHelper.insertMember({
-                    'name': '${_nomController.text} ${_prenomController.text}',
-                    'email': _numTelephoneController.text,
-                  });
-                  _loadMembers();
-                  Navigator.pop(context);
+                  try {
+                    // 1. Create user in Firebase Authentication
+                    final UserCredential userCredential = await FirebaseAuth
+                        .instance
+                        .createUserWithEmailAndPassword(
+                      email: _emailController.text.trim(),
+                      password: _passwordController.text,
+                    );
+
+                    if (userCredential.user != null) {
+                      // 2. Store member data in Firestore
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(userCredential.user!.uid)
+                          .set({
+                        'uid': userCredential.user!.uid,
+                        'email': _emailController.text.trim(),
+                        'name':
+                            '${_nomController.text.trim()} ${_prenomController.text.trim()}',
+                        'phone': _numTelephoneController.text.trim(),
+                        'sexe': _selectedSexe!,
+                        'role': 'user',
+                        'createdAt': FieldValue.serverTimestamp(),
+                        'lastLogin': FieldValue.serverTimestamp(),
+                      });
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Member created successfully!')),
+                        );
+                      }
+
+                      _nomController.clear();
+                      _prenomController.clear();
+                      _numTelephoneController.clear();
+                      _emailController.clear();
+                      _passwordController.clear();
+
+                      Navigator.pop(context);
+
+                      _loadMembers();
+                    }
+                  } on FirebaseAuthException catch (e) {
+                    String message = 'Failed to create member.';
+                    if (e.code == 'email-already-in-use') {
+                      message = 'The email address is already in use.';
+                    } else if (e.code == 'weak-password') {
+                      message = 'The password is too weak.';
+                    }
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(message)),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content:
+                                Text('An error occurred: ${e.toString()}')),
+                      );
+                    }
+                  }
                 }
               },
               child: const Text('Ajouter'),
@@ -547,41 +646,57 @@ class _AdminDashboardState extends State<AdminDashboard> {
               ? const Center(
                   child: Text('Aucun membre disponible.'),
                 )
-              : ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _members.length,
-                  itemBuilder: (context, index) {
-                    final member = _members[index];
-                    return Card(
-                      elevation: 4,
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: _primaryColor.withOpacity(0.1),
-                          child: Icon(
-                            Icons.person,
-                            color: _primaryColor,
-                          ),
-                        ),
-                        title: Text(member['name'] ?? ''),
-                        subtitle: Text('Tel: ${member['email'] ?? ''}'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () => _showEditMemberDialog(index),
+              : Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: _firestore
+                        .collection('users')
+                        .where('role', isEqualTo: 'user')
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      }
+
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Center(child: CircularProgressIndicator());
+                      }
+
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return Center(child: Text('No members found.'));
+                      }
+
+                      final members = snapshot.data!.docs;
+
+                      return ListView.builder(
+                        itemCount: members.length,
+                        itemBuilder: (context, index) {
+                          final member =
+                              members[index].data() as Map<String, dynamic>;
+                          return ListTile(
+                            leading: Icon(Icons.person),
+                            title: Text('${member['nom']} ${member['prenom']}'),
+                            subtitle: Text(
+                                'Email: ${member['email'] ?? 'N/A'}\nPhone: ${member['phone'] ?? 'N/A'}'),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit,
+                                      color: Colors.blue),
+                                  onPressed: () => _showEditMemberDialog(index),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete,
+                                      color: Colors.red),
+                                  onPressed: () => _deleteMember(index),
+                                ),
+                              ],
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _deleteMember(index),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ),
         ],
       ),
@@ -597,101 +712,100 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
- Widget _buildProductsContent() {
-  return Padding(
-    padding: const EdgeInsets.all(16.0),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Liste des produits',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1A237E),
-              ),
-            ),
-            ElevatedButton.icon(
-              onPressed: _showAddProductDialog,
-              icon: const Icon(
-                Icons.add,
-                size: 16,
-                color: Colors.white,
-              ),
-              label: const Text(
-                'Ajouter',
+  Widget _buildProductsContent() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Liste des produits',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A237E),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: _showAddProductDialog,
+                icon: const Icon(
+                  Icons.add,
+                  size: 16,
                   color: Colors.white,
                 ),
+                label: const Text(
+                  'Ajouter',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primaryColor,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _primaryColor,
-                padding: const EdgeInsets.symmetric(
-                  vertical: 8,
-                  horizontal: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        _products.isEmpty
-            ? const Center(
-                child: Text(
-                  'Aucun produit disponible.',
-                  style: TextStyle(fontSize: 16, color: Colors.black),
-                ),
-              )
-            : ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _products.length,
-                itemBuilder: (context, index) {
-                  final product = _products[index];
-                  return Card(
-                    elevation: 4,
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    child: ListTile(
-                      leading: const Icon(
-                        Icons.shopping_bag,
-                        size: 40,
-                        color: Colors.grey,
+            ],
+          ),
+          const SizedBox(height: 20),
+          _products.isEmpty
+              ? const Center(
+                  child: Text(
+                    'Aucun produit disponible.',
+                    style: TextStyle(fontSize: 16, color: Colors.black),
+                  ),
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _products.length,
+                  itemBuilder: (context, index) {
+                    final product = _products[index];
+                    return Card(
+                      elevation: 4,
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      child: ListTile(
+                        leading: const Icon(
+                          Icons.shopping_bag,
+                          size: 40,
+                          color: Colors.grey,
+                        ),
+                        title: Text(product['name'] ?? ''),
+                        subtitle: Text('Prix: ${product['price']} MAD'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () {
+                                _showEditProductDialog(index);
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () {
+                                _deleteProduct(index);
+                              },
+                            ),
+                          ],
+                        ),
                       ),
-                      title: Text(product['name'] ?? ''),
-                      subtitle: Text('Prix: ${product['price']} MAD'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () {
-                              _showEditProductDialog(index);
-                            },
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () {
-                              _deleteProduct(index);
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-      ],
-    ),
-  );
-}
- 
+                    );
+                  },
+                ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildPaymentsContent() {
     return const Center(
@@ -764,7 +878,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Fermer la boîte de dialogue
+                Navigator.pop(context);
               },
               child: const Text('Annuler'),
             ),
@@ -781,7 +895,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   });
                   _loadMembers();
 
-                  Navigator.pop(context); // Fermer la boîte de dialogue
+                  Navigator.pop(context);
                 }
               },
               child: const Text('Enregistrer'),
@@ -832,7 +946,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Fermer la boîte de dialogue
+                Navigator.pop(context);
               },
               child: const Text('Annuler'),
             ),
@@ -846,7 +960,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   });
                   _loadProducts();
 
-                  Navigator.pop(context); // Fermer la boîte de dialogue
+                  Navigator.pop(context);
                 }
               },
               child: const Text('Ajouter'),
@@ -893,7 +1007,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Close the dialog
+                Navigator.pop(context);
               },
               child: const Text('Annuler'),
             ),
@@ -908,7 +1022,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   });
                   _loadProducts();
 
-                  Navigator.pop(context); // Close the dialog
+                  Navigator.pop(context);
                 }
               },
               child: const Text('Enregistrer'),

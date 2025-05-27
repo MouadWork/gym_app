@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gym_application/login.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class UserDashboard extends StatefulWidget {
   const UserDashboard({Key? key}) : super(key: key);
@@ -83,12 +84,22 @@ class _UserDashboardState extends State<UserDashboard> {
               _buildDrawerItem(Icons.shopping_cart, 'Boutique', 3),
               _buildDrawerItem(Icons.card_membership, 'Abonnement', 4),
               const Divider(),
-              GestureDetector(
-                onTap: () => Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => MyLogin()),
+              ListTile(
+                leading: Icon(Icons.logout, color: Colors.grey[600]),
+                title: Text(
+                  'Déconnexion',
+                  style: TextStyle(
+                    color: Colors.grey[800],
+                    fontWeight: FontWeight.normal,
+                  ),
                 ),
-                child: _buildDrawerItem(Icons.logout, 'Déconnexion', 6),
+                onTap: () async {
+                  await FirebaseAuth.instance.signOut();
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const MyLogin()),
+                  );
+                },
               ),
             ],
           ),

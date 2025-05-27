@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "905893197806",
-    "project_id": "gymapp-f4bb1",
-    "storage_bucket": "gymapp-f4bb1.firebasestorage.app"
+    "project_number": "883409227436",
+    "project_id": "fitnex-2fed3",
+    "storage_bucket": "fitnex-2fed3.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:905893197806:android:753e5b04ea91cd709880ff",
+        "mobilesdk_app_id": "1:883409227436:android:46ea75f2aa8a932ff01909",
         "android_client_info": {
           "package_name": "com.example.gym_application"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBuxvq-iOV4gEcRM857oUNdAtErfEE55Rk"
+          "current_key": "AIzaSyByc0O_RYtCehrAo28nhDnUUMihVfsbKz8"
         }
       ],
       "services": {

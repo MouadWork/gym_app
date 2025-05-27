@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Function to check if the authenticated user has the 'admin' role
+    function isAdmin() {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Rules for the 'users' collection
+    match /users/{userId} {
+      // Allow read and write only if the user is authenticated AND the requested document ID matches their UID (for users managing their own profile)
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Allow admin users to read ANY document in the 'users' collection (to view the list)
+      // Allow admin users to create new documents in the 'users' collection (to add new members)
+      // Allow admin users to update/delete user documents (if you implement edit/delete later)
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    // Deny all read and write access to any other collection by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
