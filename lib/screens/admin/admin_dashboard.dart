@@ -642,62 +642,77 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
           ),
           const SizedBox(height: 10),
-          _members.isEmpty
-              ? const Center(
-                  child: Text('Aucun membre disponible.'),
-                )
-              : Expanded(
-                  child: StreamBuilder<QuerySnapshot>(
-                    stream: _firestore
-                        .collection('users')
-                        .where('role', isEqualTo: 'user')
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasError) {
-                        return Center(child: Text('Error: ${snapshot.error}'));
-                      }
+          SizedBox(
+            height: MediaQuery.of(context).size.height -
+                250, // Adjust height to prevent overflow
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _firestore
+                  .collection('users')
+                  .where('role', isEqualTo: 'user')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
 
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
-                      }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                        return Center(child: Text('No members found.'));
-                      }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text('Aucun membre disponible.'));
+                }
 
-                      final members = snapshot.data!.docs;
+                final members = snapshot.data!.docs;
 
-                      return ListView.builder(
-                        itemCount: members.length,
-                        itemBuilder: (context, index) {
-                          final member =
-                              members[index].data() as Map<String, dynamic>;
-                          return ListTile(
-                            leading: Icon(Icons.person),
-                            title: Text('${member['nom']} ${member['prenom']}'),
-                            subtitle: Text(
-                                'Email: ${member['email'] ?? 'N/A'}\nPhone: ${member['phone'] ?? 'N/A'}'),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit,
-                                      color: Colors.blue),
-                                  onPressed: () => _showEditMemberDialog(index),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete,
-                                      color: Colors.red),
-                                  onPressed: () => _deleteMember(index),
-                                ),
-                              ],
+                return ListView.builder(
+                  itemCount: members.length,
+                  itemBuilder: (context, index) {
+                    final member =
+                        members[index].data() as Map<String, dynamic>;
+                    final String displayName = member['name'] ??
+                        '${member['nom'] ?? ''} ${member['prenom'] ?? ''}'
+                            .trim();
+
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: _primaryColor.withOpacity(0.1),
+                          child: Icon(Icons.person, color: _primaryColor),
+                        ),
+                        title: Text(
+                          displayName,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Email: ${member['email'] ?? 'N/A'}'),
+                            Text('Téléphone: ${member['phone'] ?? 'N/A'}'),
+                          ],
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () =>
+                                  _showEditMemberDialog(members[index].id),
                             ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _deleteMember(members[index].id),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -816,17 +831,28 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  void _showEditMemberDialog(int index) {
-    final member = _members[index];
-    final _nomController = TextEditingController(text: member['nom']);
-    final _prenomController = TextEditingController(text: member['prenom']);
-    final _numTelephoneController =
-        TextEditingController(text: member['telephone']);
-    String? _selectedSexe = member['sexe'];
-
+  void _showEditMemberDialog(String memberId) {
     showDialog(
       context: context,
       builder: (context) {
+        final _nomController = TextEditingController();
+        final _prenomController = TextEditingController();
+        final _numTelephoneController = TextEditingController();
+        final _emailController = TextEditingController();
+        String? _selectedSexe;
+
+        // Load member data
+        _firestore.collection('users').doc(memberId).get().then((doc) {
+          if (doc.exists) {
+            final data = doc.data() as Map<String, dynamic>;
+            _nomController.text = data['nom'] ?? '';
+            _prenomController.text = data['prenom'] ?? '';
+            _numTelephoneController.text = data['phone'] ?? '';
+            _emailController.text = data['email'] ?? '';
+            _selectedSexe = data['sexe'];
+          }
+        });
+
         return AlertDialog(
           title: const Text('Modifier un membre'),
           content: SingleChildScrollView(
@@ -858,6 +884,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 10),
+                TextField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   value: _selectedSexe,
                   items: const [
@@ -877,9 +912,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              onPressed: () => Navigator.pop(context),
               child: const Text('Annuler'),
             ),
             ElevatedButton(
@@ -887,15 +920,36 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 if (_nomController.text.isNotEmpty &&
                     _prenomController.text.isNotEmpty &&
                     _numTelephoneController.text.isNotEmpty &&
+                    _emailController.text.isNotEmpty &&
                     _selectedSexe != null) {
-                  await DBHelper.updateMember({
-                    'id': member['id'],
-                    'name': '${_nomController.text} ${_prenomController.text}',
-                    'email': _numTelephoneController.text,
-                  });
-                  _loadMembers();
+                  try {
+                    await _firestore.collection('users').doc(memberId).update({
+                      'nom': _nomController.text.trim(),
+                      'prenom': _prenomController.text.trim(),
+                      'phone': _numTelephoneController.text.trim(),
+                      'email': _emailController.text.trim(),
+                      'sexe': _selectedSexe,
+                      'name':
+                          '${_nomController.text.trim()} ${_prenomController.text.trim()}',
+                    });
 
-                  Navigator.pop(context);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Member updated successfully!')),
+                      );
+                    }
+
+                    Navigator.pop(context);
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content:
+                                Text('Error updating member: ${e.toString()}')),
+                      );
+                    }
+                  }
                 }
               },
               child: const Text('Enregistrer'),
@@ -906,9 +960,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Future<void> _deleteMember(int index) async {
-    await DBHelper.deleteMember(_members[index]['id']);
-    _loadMembers();
+  Future<void> _deleteMember(String memberId) async {
+    try {
+      await _firestore.collection('users').doc(memberId).delete();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Member deleted successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting member: ${e.toString()}')),
+        );
+      }
+    }
   }
 
   void _showAddProductDialog() {
